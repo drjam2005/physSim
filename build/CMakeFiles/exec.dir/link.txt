@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/exec.dir/src/main.cpp.o -o exec   -L/home/james/Projects/PhysSim/vendor/lib  -Wl,-rpath,/home/james/Projects/PhysSim/vendor/lib -lraylib -lm 

@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/james/Projects/PhysSim/build",
+  "command": "/usr/bin/c++  -I/home/james/Projects/PhysSim/include -I/home/james/Projects/PhysSim/vendor/include  -o CMakeFiles/exec.dir/src/main.cpp.o -c /home/james/Projects/PhysSim/src/main.cpp",
+  "file": "/home/james/Projects/PhysSim/src/main.cpp",
+  "output": "CMakeFiles/exec.dir/src/main.cpp.o"
+}
+]
