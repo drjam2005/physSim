@@ -4,7 +4,9 @@ project(PhysSim)
 set(exec
 	exec)
 set(src
-	src/main.cpp)
+	src/main.cpp
+	src/particle_system.cpp
+)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(${exec} ${src})
