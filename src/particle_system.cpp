@@ -196,6 +196,7 @@ void ParticleSystem::Update()
     for(int y = (int)height-2; y >= 0; --y){
         for(int x = 0; x < (int)width; ++x){
             int curr = y*width + x;
+			int top = (y-1)*width + x;
             int bottom = (y+1)*width + x;
             int botLeft = (y+1)*width + x-1;
             int botRight = (y+1)*width + x+1;
@@ -207,15 +208,26 @@ void ParticleSystem::Update()
 				continue;
 
             if(p->type == SOLID){
-                if(bottom < (int)width*height && (!particles[bottom] || particles[bottom]->type == FLUID))
+                if(y < height && !particles[bottom]){
                     std::swap(particles[curr], particles[bottom]);
-                else if(x>0 && botLeft >= 0 && !particles[botLeft]) 
+				}else if(y < height && particles[bottom]->type == FLUID){
+					if(x > 0 && !particles[botLeft])
+						std::swap(particles[bottom], particles[botLeft]);
+					if(x < width-1 && !particles[botRight])
+						std::swap(particles[bottom], particles[botRight]);
+					else
+						std::swap(particles[bottom], particles[curr]);
+				}else if(x>0 && botLeft >= 0 && (!particles[botLeft])){
 					std::swap(particles[curr], particles[botLeft]);
-                else if(x+1<(int)width && botRight<(int)width*height && !particles[botRight])
+				}else if(x>0 && botLeft >= 0 && (particles[botLeft]->type == FLUID && rand()%2)){
+					std::swap(particles[curr], particles[botLeft]);
+				}else if(x < width-1 && y < height-1 && (!particles[botRight])){
+					std::swap(particles[curr], particles[botRight]);
+				}else if(x < width-1 && y < height-1 && (particles[botRight]->type == FLUID && rand()%2))
 					std::swap(particles[curr], particles[botRight]);
             }
             else if(p->type == FLUID){
-                if(bottom < (int)width*height && !particles[bottom]) std::swap(particles[curr], particles[bottom]);
+                if(y < height && !particles[bottom]) std::swap(particles[curr], particles[bottom]);
                 else if(x>0 && botLeft >= 0 && !particles[botLeft])
 					std::swap(particles[curr], particles[botLeft]);
                 else if(x+1<(int)width && botRight<(int)width*height && !particles[botRight])

@@ -16,7 +16,9 @@ int main()
     system.RegisterParticle(GenSolidParticle("STONE", GRAY, 0.2f));
     system.RegisterParticle(GenFluidParticle("WATER", BLUE, 1.0f));
     system.RegisterParticle(GenSolidParticle("SAND", YELLOW, 0.2f));
+    system.RegisterParticle(GenSolidParticle("BRICK", RED, 0.2f));
 
+	system.AddShaderToParticle("SAND", "../src/noise.fs");
 	system.AddShaderToParticle("STONE", "../src/noise.fs");
 	system.SetBackground(GenImageColor(WIDTH/PIXEL_SIZE, HEIGHT/PIXEL_SIZE, DARKBLUE));
 
@@ -31,6 +33,8 @@ int main()
 			system.InsertParticle("WATER", ScreenToCanvas(GetMousePosition(), (Vector2){PIXEL_SIZE, PIXEL_SIZE}));
 		if(IsMouseButtonDown(MOUSE_BUTTON_MIDDLE))
 			system.InsertParticle("STONE", ScreenToCanvas(GetMousePosition(), (Vector2){PIXEL_SIZE, PIXEL_SIZE}));
+		if(IsKeyDown(KEY_SPACE))
+			system.InsertParticle("BRICK", ScreenToCanvas(GetMousePosition(), (Vector2){PIXEL_SIZE, PIXEL_SIZE}));
 
 		system.Update();
 		system.Render();
