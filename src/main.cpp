@@ -21,6 +21,7 @@ int main()
 	system.AddShaderToParticle("SAND", "../src/noise.fs");
 	system.AddShaderToParticle("STONE", "../src/noise.fs");
 	system.SetBackground(GenImageColor(WIDTH/PIXEL_SIZE, HEIGHT/PIXEL_SIZE, DARKBLUE));
+	system.SetParticleInteraction("STONE", "WATER", "BRICK");
 
 	while(!WindowShouldClose())
 	{

@@ -97,7 +97,12 @@ void ParticleSystem::UpdateShaderV4(std::string shaderPath, std::string uniformN
     }
 }
 
-void ParticleSystem::InsertParticle(const std::string& typeName, Vector2 canvas)
+void ParticleSystem::SetParticleInteraction(std::string particleOne, std::string particleTwo, std::string particleResult){
+	if(particleTypes.count(particleOne) && particleTypes.count(particleTwo) && particleTypes.count(particleResult))
+		particleInteractions[make_key(particleOne,particleTwo)] = particleResult;
+}
+
+void ParticleSystem::InsertParticle(std::string typeName, Vector2 canvas)
 {
     int x = (int)canvas.x;
     int y = (int)canvas.y;
@@ -211,11 +216,22 @@ void ParticleSystem::Update()
                 if(y < height && !particles[bottom]){
                     std::swap(particles[curr], particles[bottom]);
 				}else if(y < height && particles[bottom]->type == FLUID){
-					if(x > 0 && !particles[botLeft])
+					if(x > 0 && !particles[botLeft]){
 						std::swap(particles[bottom], particles[botLeft]);
-					if(x < width-1 && !particles[botRight])
+					}else if(x < width-1 && !particles[botRight]){
 						std::swap(particles[bottom], particles[botRight]);
-					else
+					}else if(y < height-1 && particleInteractions.count(make_key(p->parent, particles[bottom]->parent))){
+						Particle* finalParticle = particleTypes[particleInteractions[make_key(p->parent, particles[bottom]->parent)]];
+						if(finalParticle->type == SOLID){
+							SolidParticle* solidPart = (SolidParticle*)finalParticle;
+							particles[bottom] = (Particle*)GenSolidParticle(solidPart->parent, solidPart->clr, solidPart->crumbleFactor);
+						}else if(finalParticle->type == FLUID){
+							FluidParticle* fluidPart = (FluidParticle*)finalParticle;
+							particles[bottom] = (Particle*)GenSolidParticle(fluidPart->parent, fluidPart->clr, fluidPart->density);
+						}
+						delete particles[curr];
+						particles[curr] = nullptr;
+					}else
 						std::swap(particles[bottom], particles[curr]);
 				}else if(x>0 && botLeft >= 0 && (!particles[botLeft])){
 					std::swap(particles[curr], particles[botLeft]);
@@ -241,3 +257,11 @@ void ParticleSystem::Update()
     }
 }
 
+
+// helper
+std::pair<std::string, std::string> make_key(const std::string& a, const std::string& b) {
+    if (a < b)
+        return {a, b};
+    else
+        return {b, a};
+}
