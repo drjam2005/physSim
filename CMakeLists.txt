@@ -38,6 +38,5 @@ else()
 	)
 	target_link_libraries(${exec} PRIVATE
 		raylib
-		m
 	)
 endif()
