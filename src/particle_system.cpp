@@ -1,13 +1,27 @@
 #include "particle_system.h"
+#include <vector>
+#include <bits/stdc++.h>
+#include <algorithm>
 #include <cstring>
 #include "raylib.h"
+#include <random>
 
+static std::mt19937 rng{ std::random_device{}() };
 SolidParticle* GenSolidParticle(std::string name, Color clr, float crumbleFactor) {
     return new SolidParticle(name, clr, crumbleFactor);
 }
 
 FluidParticle* GenFluidParticle(std::string name, Color clr, float density) {
     return new FluidParticle(name, clr, density);
+}
+
+Particle* GenParticle(std::string name, PARTICLE_TYPE type, Color clr, float density){
+	if(type == SOLID)
+		return GenSolidParticle(name, clr, density);
+	else if(type == FLUID)
+		return GenFluidParticle(name, clr, density);
+	else 
+		return nullptr;
 }
 
 ParticleSystem::ParticleSystem(Rectangle screen, Vector2 scale) {
@@ -25,6 +39,10 @@ ParticleSystem::ParticleSystem(Rectangle screen, Vector2 scale) {
     particleShaders.clear();
 
     background.id = 0;
+}
+
+ParticleSystem::~ParticleSystem(){
+	delete[] particles;
 }
 
 void ParticleSystem::RegisterParticle(Particle* prototype)
@@ -116,7 +134,7 @@ void ParticleSystem::InsertParticle(std::string typeName, Vector2 canvas)
 
     if(proto->type == SOLID){
         SolidParticle* s = static_cast<SolidParticle*>(proto);
-        newParticle = new SolidParticle(s->parent, s->clr, s->crumbleFactor);
+        newParticle = new SolidParticle(s->parent, s->clr, s->density);
     }
     else if(proto->type == FLUID){
         FluidParticle* f = static_cast<FluidParticle*>(proto);
@@ -180,6 +198,11 @@ void ParticleSystem::Render() {
             );
         }
     }
+	int y = 0;
+	for(auto k : particleInteractions){
+		DrawText(TextFormat("%s + %s = %s", k.first.first.c_str(), k.first.second.c_str(), k.second.c_str()), 20, 20+(30*y), 20, BLACK);
+		y++;
+	}
 }
 
 Vector2 ParticleSystem::ScreenToCanvas(Vector2 mousePos){
@@ -196,10 +219,15 @@ void ParticleSystem::SetBackground(Image img)
     UnloadImage(img);
 }
 
-void ParticleSystem::Update()
-{
+
+void ParticleSystem::Update() {
+	std::vector<int> xs(width);
+	std::iota(xs.begin(), xs.end(), 0);
+	std::shuffle(xs.begin(), xs.end(), rng);
+
     for(int y = (int)height-2; y >= 0; --y){
-        for(int x = 0; x < (int)width; ++x){
+        for(int xi = 0; xi < (int)width; ++xi){
+			int x = xs[xi];
             int curr = y*width + x;
 			int top = (y-1)*width + x;
             int bottom = (y+1)*width + x;
@@ -208,57 +236,127 @@ void ParticleSystem::Update()
             int left = y*width + x-1;
             int right = y*width + x+1;
 
-            Particle* p = particles[curr];
-            if(!p) 
+            Particle* pCurr = particles[curr];
+
+			if(!pCurr)
 				continue;
 
-            if(p->type == SOLID){
-                if(y < height && !particles[bottom]){
-                    std::swap(particles[curr], particles[bottom]);
-				}else if(y < height && particles[bottom]->type == FLUID){
-					if(x > 0 && !particles[botLeft]){
-						std::swap(particles[bottom], particles[botLeft]);
-					}else if(x < width-1 && !particles[botRight]){
-						std::swap(particles[bottom], particles[botRight]);
-					}else if(y < height-1 && particleInteractions.count(make_key(p->parent, particles[bottom]->parent))){
-						Particle* finalParticle = particleTypes[particleInteractions[make_key(p->parent, particles[bottom]->parent)]];
-						if(finalParticle->type == SOLID){
-							SolidParticle* solidPart = (SolidParticle*)finalParticle;
-							particles[bottom] = (Particle*)GenSolidParticle(solidPart->parent, solidPart->clr, solidPart->crumbleFactor);
-						}else if(finalParticle->type == FLUID){
-							FluidParticle* fluidPart = (FluidParticle*)finalParticle;
-							particles[bottom] = (Particle*)GenSolidParticle(fluidPart->parent, fluidPart->clr, fluidPart->density);
+			if(pCurr->type == SOLID){
+				if(y < height-1){ // bottom
+					if(!particles[bottom]){
+							std::swap(particles[curr], particles[bottom]); 
+						continue;
+					}else if(particles[bottom]){
+						if(particleInteractions.count(make_key(particles[curr]->parent, particles[bottom]->parent))){
+							std::string result = particleInteractions[make_key(particles[curr]->parent, particles[bottom]->parent)];
+							particles[bottom] = GenParticle(result, particleTypes[result]->type, particleTypes[result]->clr, particleTypes[result]->density);
+							delete particles[curr];
+							particles[curr] = nullptr;
+							continue;
+						}else{
+							if(particles[bottom]->type == FLUID){
+								if ((float)rand() / RAND_MAX < particles[curr]->density - particles[bottom]->density)
+									std::swap(particles[curr], particles[bottom]);
+							}
 						}
-						delete particles[curr];
-						particles[curr] = nullptr;
-					}else
-						std::swap(particles[bottom], particles[curr]);
-				}else if(x>0 && botLeft >= 0 && (!particles[botLeft])){
-					std::swap(particles[curr], particles[botLeft]);
-				}else if(x>0 && botLeft >= 0 && (particles[botLeft]->type == FLUID && rand()%2)){
-					std::swap(particles[curr], particles[botLeft]);
-				}else if(x < width-1 && y < height-1 && (!particles[botRight])){
-					std::swap(particles[curr], particles[botRight]);
-				}else if(x < width-1 && y < height-1 && (particles[botRight]->type == FLUID && rand()%2))
-					std::swap(particles[curr], particles[botRight]);
-            }
-            else if(p->type == FLUID){
-                if(y < height && !particles[bottom]) std::swap(particles[curr], particles[bottom]);
-                else if(x>0 && botLeft >= 0 && !particles[botLeft])
-					std::swap(particles[curr], particles[botLeft]);
-                else if(x+1<(int)width && botRight<(int)width*height && !particles[botRight])
-					std::swap(particles[curr], particles[botRight]);
-                else if(x>0 && left>=0 && !particles[left] && rand()%2)
-					std::swap(particles[curr], particles[left]);
-                else if(x+1<(int)width && right<(int)width*height && !particles[right])
-					std::swap(particles[curr], particles[right]);
-            }
+					}
+				}if(x < width-1 && y < height-1){
+					if(!particles[botRight]){
+						if ((float)rand() / RAND_MAX < (particles[curr]->density))
+							std::swap(particles[curr], particles[botRight]); 
+						continue;
+					}else if(particles[botRight]){
+						if(particleInteractions.count(make_key(particles[curr]->parent, particles[botRight]->parent))){
+							std::string result = particleInteractions[make_key(particles[curr]->parent, particles[botRight]->parent)];
+							particles[botRight] = GenParticle(result, particleTypes[result]->type, particleTypes[result]->clr, particleTypes[result]->density);
+							delete particles[curr];
+							particles[curr] = nullptr;
+							continue;
+						}else{
+							if(particles[botRight]->type == FLUID){
+								if ((float)rand() / RAND_MAX < particles[curr]->density - particles[botRight]->density)
+									std::swap(particles[curr], particles[botRight]);
+							}
+						}
+					}
+				}if(x > 0){
+					if(!particles[botLeft]){
+						if ((float)rand() / RAND_MAX < (particles[curr]->density))
+							std::swap(particles[curr], particles[botLeft]);
+						continue;
+					}else if(particles[botLeft]){
+						if(particleInteractions.count(make_key(particles[curr]->parent, particles[botLeft]->parent))){
+							std::string result = particleInteractions[make_key(particles[curr]->parent, particles[botLeft]->parent)];
+							particles[botLeft] = GenParticle(result, particleTypes[result]->type, particleTypes[result]->clr, particleTypes[result]->density);
+							delete particles[curr];
+							particles[curr] = nullptr;
+							continue;
+						}else{
+							if(particles[botLeft]->type == FLUID){
+								if ((float)rand() / RAND_MAX < particles[curr]->density - particles[botLeft]->density)
+									std::swap(particles[curr], particles[botLeft]);
+							}
+						}
+					}
+				}
+			}else if(pCurr->type == FLUID){
+				if(y < height-1){ // bottom
+					if(!particles[bottom]){
+						std::swap(particles[curr], particles[bottom]); continue;
+					}else if(particles[bottom]){
+						if(particleInteractions.count(make_key(particles[curr]->parent, particles[bottom]->parent))){
+							std::string result = particleInteractions[make_key(particles[curr]->parent, particles[bottom]->parent)];
+							particles[bottom] = GenParticle(result, particleTypes[result]->type, particleTypes[result]->clr, particleTypes[result]->density);
+							delete particles[curr];
+							particles[curr] = nullptr;
+							continue;
+						}else{
+							if(particles[bottom]->type == FLUID){
+								if ((float)rand() / RAND_MAX < particles[curr]->density - particles[bottom]->density)
+									std::swap(particles[curr], particles[bottom]);
+							}
+						}
+					}
+				}if(x < width-1 && y < height-1){
+					if(!particles[right]){
+						std::swap(particles[curr], particles[right]); continue;
+					}else if(particles[right]){
+						if(particleInteractions.count(make_key(particles[curr]->parent, particles[right]->parent))){
+							std::string result = particleInteractions[make_key(particles[curr]->parent, particles[right]->parent)];
+							particles[right] = GenParticle(result, particleTypes[result]->type, particleTypes[result]->clr, particleTypes[result]->density);
+							delete particles[curr];
+							particles[curr] = nullptr;
+							continue;
+						}else{
+							if(particles[right]->type == FLUID){
+								if ((float)rand() / RAND_MAX < particles[curr]->density - particles[right]->density)
+									std::swap(particles[curr], particles[right]);
+							}
+						}
+					}
+				}if(x > 0){
+					if(!particles[left]){
+						std::swap(particles[curr], particles[left]); continue;
+					}else if(particles[left]){
+						if(particleInteractions.count(make_key(particles[curr]->parent, particles[left]->parent))){
+							std::string result = particleInteractions[make_key(particles[curr]->parent, particles[left]->parent)];
+							particles[left] = GenParticle(result, particleTypes[result]->type, particleTypes[result]->clr, particleTypes[result]->density);
+							delete particles[curr];
+							particles[curr] = nullptr;
+							continue;
+						}else{
+							if(particles[left]->type == FLUID){
+								if ((float)rand() / RAND_MAX < particles[curr]->density - particles[left]->density)
+									std::swap(particles[curr], particles[left]);
+							}
+						}
+					}
+				}
+			}
         }
     }
 }
 
-
-// helper
 std::pair<std::string, std::string> make_key(const std::string& a, const std::string& b) {
     if (a < b)
         return {a, b};

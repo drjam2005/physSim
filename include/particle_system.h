@@ -28,22 +28,21 @@ enum PARTICLE_TYPE {
 struct Particle {
 	std::string parent;
     PARTICLE_TYPE type = NONE;
+    float density;
 	Color clr;
     virtual ~Particle() = default;
 };
 
 struct SolidParticle : Particle {
-    float crumbleFactor;
 	SolidParticle(std::string parent, Color clr, float c, bool isTex=false) {
 		this->parent = parent;
 		this->clr = clr;
 		this->type = SOLID;
-		this->crumbleFactor = c;
+		this->density = c;
 	}
 };
 
 struct FluidParticle : Particle {
-	float density;
 	FluidParticle(std::string parent, Color clr, float d){
 		this->parent = parent;
 		this->clr = clr;
@@ -52,8 +51,9 @@ struct FluidParticle : Particle {
 	}
 };
 
-SolidParticle* GenSolidParticle(std::string name, Color clr, float crumbleFactor);
+SolidParticle* GenSolidParticle(std::string name, Color clr, float density);
 FluidParticle* GenFluidParticle(std::string name, Color clr, float density);
+Particle* GenParticle(std::string name, PARTICLE_TYPE type, Color clr, float density);
 
 class ParticleSystem {
 private:
@@ -69,6 +69,7 @@ private:
 	std::unordered_map<std::pair<std::string, std::string>, std::string, PairHash> particleInteractions;
 public:
     ParticleSystem(Rectangle screen, Vector2 scale);
+	~ParticleSystem();
 
     void RegisterParticle(Particle* prototype);
     void InsertParticle(std::string typeName, Vector2 pos);
