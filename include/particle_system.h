@@ -28,31 +28,11 @@ enum PARTICLE_TYPE {
 struct Particle {
 	std::string parent;
     PARTICLE_TYPE type = NONE;
-    float density;
 	Color clr;
-    virtual ~Particle() = default;
+    float density;
 };
-
-struct SolidParticle : Particle {
-	SolidParticle(std::string parent, Color clr, float c, bool isTex=false) {
-		this->parent = parent;
-		this->clr = clr;
-		this->type = SOLID;
-		this->density = c;
-	}
-};
-
-struct FluidParticle : Particle {
-	FluidParticle(std::string parent, Color clr, float d){
-		this->parent = parent;
-		this->clr = clr;
-		this->type = FLUID;
-		this->density = d;
-	}
-};
-
-SolidParticle* GenSolidParticle(std::string name, Color clr, float density);
-FluidParticle* GenFluidParticle(std::string name, Color clr, float density);
+Particle* GenSolidParticle(std::string name, Color clr, float density);
+Particle* GenFluidParticle(std::string name, Color clr, float density);
 Particle* GenParticle(std::string name, PARTICLE_TYPE type, Color clr, float density);
 
 class ParticleSystem {

@@ -7,21 +7,16 @@
 #include <random>
 
 static std::mt19937 rng{ std::random_device{}() };
-SolidParticle* GenSolidParticle(std::string name, Color clr, float crumbleFactor) {
-    return new SolidParticle(name, clr, crumbleFactor);
+Particle* GenSolidParticle(std::string name, Color clr, float density) {
+    return new Particle{name, SOLID, clr, density};
 }
 
-FluidParticle* GenFluidParticle(std::string name, Color clr, float density) {
-    return new FluidParticle(name, clr, density);
+Particle* GenFluidParticle(std::string name, Color clr, float density) {
+    return new Particle{name, FLUID, clr, density};
 }
 
 Particle* GenParticle(std::string name, PARTICLE_TYPE type, Color clr, float density){
-	if(type == SOLID)
-		return GenSolidParticle(name, clr, density);
-	else if(type == FLUID)
-		return GenFluidParticle(name, clr, density);
-	else 
-		return nullptr;
+    return new Particle{name, type, clr, density};
 }
 
 ParticleSystem::ParticleSystem(Rectangle screen, Vector2 scale) {
@@ -132,15 +127,7 @@ void ParticleSystem::InsertParticle(std::string typeName, Vector2 canvas)
     Particle* proto = particleTypes[typeName];
     Particle* newParticle = nullptr;
 
-    if(proto->type == SOLID){
-        SolidParticle* s = static_cast<SolidParticle*>(proto);
-        newParticle = new SolidParticle(s->parent, s->clr, s->density);
-    }
-    else if(proto->type == FLUID){
-        FluidParticle* f = static_cast<FluidParticle*>(proto);
-        newParticle = new FluidParticle(f->parent, f->clr, f->density);
-    }
-
+	newParticle = new Particle{proto->parent, proto->type, proto->clr, proto->density};
     particles[index] = newParticle;
 }
 
